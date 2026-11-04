@@ -585,7 +585,7 @@ const CONFIG = {
   sizeWindow: [0.8, 1.25],
   stage2: { startD: 40, minD: 6, maxD: 45, dragK: 0.0032, dragKBack: 0.0018, holdS: 1.2,
     vFwd: 4.0, vBack: 1.6, follow: 2.5, acc: 4.0,   // v1.4: human pace – forward faster than backward (m/s, m/s²)
-    walk: { stepMin: 0.6, stepMax: 0.95, fullV: 1.2, bobY: 0.035, nodDeg: 0.6, rollDeg: 0.7, backAmp: 0.75 } },
+    walk: { stepLen: 1.1, cadence: 1.5, fullV: 1.5, bobY: 0.012, nodDeg: 0.15, rollDeg: 0.12, backAmp: 0.6, tau: 0.5 } },   // v1.5: big strides, ≤ 1.5 steps/s, gentle bob
   // stage 3 速度: the 斄牛 first steps back behind the crest (startS), the student steers it with a direction dial
   // RELATIVE TO THE OBSERVER (A12: 0 = around you, leftward with the wind; 1 = straight toward your eye), a gait slider
   // and a wind slider (A10). Lateral ω ≈ v·cos(a)/d, looming ≈ v·sin(a)/d. Speeds m/s, angular °/s, looming %/s.
@@ -819,8 +819,8 @@ const TEXT = {
     '你放下了比較之心。',
     '你放下了成心我見。',
     '你放下了急切。',
-    '你放下了對重量的執著。',
-    '你放下了分辨遠近的心。',
+    '你不再比較輕重。',
+    '你不再分辨遠近親疏。',
     '你放下了站著看世界的身段。'
   ],
   synthTitle: '',
@@ -833,8 +833,8 @@ const TEXT = {
     '人生裡，有沒有一件事、一個人，你一直只用同一把尺去量？',
     '試試換一個角度——連「我」也暫且放下。'
   ],
-  victory: '渾融萬物而齊一',
-  ending: ['眼前的斄牛，大到跟雲一樣。', '但，牠有什麼用？', '軟綿綿的、很溫暖。'],
+  victory: '泯除物我，齊物並生',
+  ending: ['眼前的斄牛，大到跟雲一樣。', '但，牠有什麼用？', '你抱了上去，感覺軟綿綿的、很溫暖。'],
   ui: {
     tap: '輕觸繼續',
     done: '完成（測試用）',
@@ -2668,7 +2668,7 @@ const STAGES = [null,
       UI.guideText(null);
       Flow.later(1.2, () => Flow.success());
     },
-    // the observer walks to the drag target (v < 0 = forward); every step bobs the head
+    // the observer walks to the drag target (v < 0 = forward). v1.5: big strides, low cadence, smooth gentle bob
     walk(dt) {
       if (dt <= 0) return;
       const S = CONFIG.stage2, W = S.walk, gap = this.tD - Rig.d;
@@ -2677,13 +2677,15 @@ const STAGES = [null,
       const nd = Rig.d + this.v * dt;
       if ((this.tD - nd) * gap <= 0) { Rig.d = this.tD; this.v = 0; } else Rig.d = clamp(nd, S.minD, S.maxD);
       const sp = Math.abs(this.v), p0 = this.ph;
-      this.ph += sp * dt / lerp(W.stepMin, W.stepMax, clamp(sp / S.vFwd, 0, 1)) * Math.PI;   // π per step
-      if (Math.floor(this.ph / Math.PI) > Math.floor(p0 / Math.PI)) this.steps++;          // a foot lands (AUDIO)
-      this.bobK += (clamp(sp / W.fullV, 0, 1) - this.bobK) * (1 - Math.exp(-dt / 0.2));
-      const k = this.bobK * (this.v > 0 ? W.backAmp : 1), s = Math.sin(this.ph), a = Math.abs(s) - 0.64;
-      Rig.yAdd = W.bobY * k * a;            // lowest when the foot lands
-      Rig.pitchFx = W.nodDeg * k * a;       // small nod down on each landing
-      Rig.rollAdd = W.rollDeg * k * s;      // sway left / right once per two steps
+      const hz = Math.min(sp / W.stepLen, W.cadence);                 // steps per second, capped → faster = longer strides
+      this.ph += hz * Math.PI * dt;                                   // π per step
+      if (Math.floor(this.ph / Math.PI) > Math.floor(p0 / Math.PI)) this.steps++;   // a foot lands (AUDIO)
+      this.bobK += (clamp(sp / W.fullV, 0, 1) - this.bobK) * (1 - Math.exp(-dt / W.tau));   // bob fades in / out softly
+      const k = this.bobK * (this.v > 0 ? W.backAmp : 1);
+      const a = -0.5 * Math.cos(2 * this.ph);                          // smooth: lowest as the foot lands, no jolt
+      Rig.yAdd = W.bobY * k * a;
+      Rig.pitchFx = W.nodDeg * k * a;
+      Rig.rollAdd = W.rollDeg * k * Math.sin(this.ph);                 // very slight sway, once per two steps
     },
     update(dt) {
       this.walk(dt);
