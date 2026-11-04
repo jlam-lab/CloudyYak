@@ -351,6 +351,43 @@
   body #err { top: calc(8px + env(safe-area-inset-top, 0px)); left: calc(8px + env(safe-area-inset-left, 0px)); right: calc(8px + env(safe-area-inset-right, 0px)); }
   body #start, body #release { box-sizing: border-box;
     padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+  /* ===== v1.5 第0關・引子 ===== */
+  #intro { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 48; display: none; overflow: hidden;
+    background-color: #05080f; transition: background-color 1.2s ease; touch-action: none; }
+  #intro.on { display: block; }
+  #intro.photo, #intro.out { background-color: rgba(5,8,15,0); transition-delay: .5s; }
+  #inText { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); padding: 0 10%; text-align: center;
+    white-space: pre-line; font-size: calc(28px * var(--k)); line-height: 1.75; letter-spacing: .06em;
+    opacity: 0; transition: opacity .5s ease; text-shadow: 0 2px 12px rgba(0,0,0,.7); }
+  #inText.show { opacity: 1; }
+  #intro.art #inText { top: 64%; transform: none; }
+  #intro.photo #inText { top: 77%; transform: none; font-size: max(13px, calc(24px * var(--k))); line-height: 1.55; }
+  #inArt { position: absolute; left: 50%; top: 9%; width: min(78vw, calc(620px * var(--k))); height: auto;
+    transform: translateX(-50%); opacity: 0; transition: opacity .8s ease; }
+  #intro.art #inArt { opacity: 1; }
+  #inArt .cld { animation: inFloat 6s ease-in-out infinite; }
+  @keyframes inFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  /* the "photo" = a hole in a dark sheet: the frozen stage-1 3D view shows through, white print border */
+  #inPhoto { position: absolute; left: 9%; right: 9%; top: 6%; bottom: 26%; box-sizing: border-box; border-radius: 3px;
+    border: calc(12px * var(--k)) solid #f3efe6; border-bottom-width: calc(30px * var(--k));
+    box-shadow: 0 0 0 200vmax rgba(5,8,15,.94); opacity: 0; transform: scale(1.06);
+    transition: opacity .6s ease, transform 1.2s cubic-bezier(.2,.7,.3,1), box-shadow 1.4s ease; }
+  #intro.photo #inPhoto { opacity: 1; transform: scale(1); }
+  #inPhoto .fx { position: absolute; top: 0; left: 0; right: 0; bottom: 0; transition: opacity 1.2s ease;
+    -webkit-backdrop-filter: saturate(.55) brightness(.82) contrast(.9) sepia(.2); backdrop-filter: saturate(.55) brightness(.82) contrast(.9) sepia(.2);
+    background: linear-gradient(118deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.14) 42%, rgba(255,255,255,.04) 50%, rgba(255,255,255,0) 60%),
+                radial-gradient(ellipse at 30% 20%, rgba(255,255,255,.10), rgba(255,255,255,0) 55%); }
+  @supports not ((backdrop-filter: none) or (-webkit-backdrop-filter: none)) { #inPhoto .fx { background-color: rgba(40,30,15,.22); } }
+  #intro.out #inPhoto { opacity: 1; transform: scale(1.9); box-shadow: 0 0 0 200vmax rgba(5,8,15,0);
+    transition: transform 1.6s cubic-bezier(.5,0,.75,.3), box-shadow 1.2s ease; }
+  #intro.out #inPhoto .fx { opacity: 0; }
+  #intro.out #inText, #intro.out #inTap, #intro.out #inSkip { opacity: 0 !important; }
+  #inTap { position: absolute; left: 0; right: 0; bottom: calc(14px * var(--k) + env(safe-area-inset-bottom, 0px)); text-align: center;
+    font-size: max(10px, calc(15px * var(--k))); letter-spacing: .2em; opacity: 0; transition: opacity 1s ease; }
+  #intro.tappable #inTap { opacity: .5; }
+  #inSkip { position: absolute; top: calc(14px * var(--k) + env(safe-area-inset-top, 0px)); right: calc(16px * var(--k) + env(safe-area-inset-right, 0px));
+    font-family: inherit; font-size: max(12px, calc(14px * var(--k))); min-height: 36px; padding: 6px 16px; border-radius: 18px;
+    border: 1px solid rgba(255,255,255,.35); background: rgba(20,30,50,.4); color: #fff; opacity: .55; transition: opacity .6s; }
 </style>
 
 <script>
@@ -474,6 +511,30 @@
   <p id="rotateNote"></p>
   <button id="startBtn" type="button"></button>
   <p id="startNote"></p>
+</div>
+  <div id="intro">
+  <svg id="inArt" viewBox="0 0 600 260" aria-hidden="true">
+    <path d="M30 228 H570" stroke="rgba(255,255,255,.25)" stroke-width="2"/>
+    <g>
+      <path d="M78 128 q-26 8 -22 52" fill="none" stroke="#b8842c" stroke-width="6" stroke-linecap="round"/>
+      <rect x="92" y="176" width="16" height="50" rx="5" fill="#b8842c"/><rect x="116" y="176" width="16" height="50" rx="5" fill="#b8842c"/>
+      <rect x="200" y="176" width="16" height="50" rx="5" fill="#b8842c"/><rect x="224" y="176" width="16" height="50" rx="5" fill="#b8842c"/>
+      <rect x="76" y="108" width="176" height="82" rx="36" fill="#d9a441"/>
+      <ellipse cx="270" cy="118" rx="34" ry="27" fill="#d9a441"/>
+      <ellipse cx="290" cy="131" rx="17" ry="13" fill="#f0c98a"/>
+      <ellipse cx="246" cy="104" rx="12" ry="6" fill="#b8842c"/>
+      <circle cx="268" cy="110" r="4.5" fill="#3a2a14"/>
+      <path d="M256 95 q-8 -24 8 -30 M280 94 q10 -22 26 -18" fill="none" stroke="#efe6d2" stroke-width="7" stroke-linecap="round"/>
+    </g>
+    <g class="cld" fill="#f6f7fb">
+      <circle cx="380" cy="132" r="36"/><circle cx="425" cy="102" r="48"/><circle cx="478" cy="96" r="44"/><circle cx="522" cy="128" r="36"/>
+      <rect x="360" y="120" width="190" height="52" rx="26"/>
+    </g>
+  </svg>
+  <div id="inPhoto"><div class="fx"></div></div>
+  <div id="inText" class="serif"></div>
+  <div id="inTap"></div>
+  <button id="inSkip" type="button"></button>
 </div>
 <div id="portrait"></div>
 <div id="geo"></div>
@@ -753,6 +814,19 @@ function rng(seed) {
 // ==== SECTION: TEXT ====
 const TEXT = {
   title: '看牛的方式',
+  // v1.5 第0關・引子: [畫面, 文字]  畫面 quote = 純文字・art = 平面黃牛與雲・photo = 定格「相片」（其實是第一關）
+  intro: [
+    ['quote', '「今夫斄牛，其大若垂天之雲，\n此能為大矣，而不能執鼠。」\n——《莊子・逍遙遊》'],
+    ['quote', '莊子說：現在有一頭牛，大得像從天上垂下來的雲。\n你想像得到嗎？'],
+    ['art', '像嗎？'],
+    ['art', '很牽強吧？'],
+    ['photo', '如果，是這一種牛呢？'],
+    ['photo', '這是一頭白色的斄牛。像雲嗎？'],
+    ['photo', '哈，依然不太像吧？'],
+    ['photo', '我們不如把思路逆轉過來：\n要用怎樣的方式看牛，這頭笨重的牛才能與天上的雲相提並論？'],
+    ['photo', '來，像一層一層點開美圖濾鏡那樣，\n把自己的眼睛調校成莊子的觀景窗，讓斄牛借到雲的神情吧！'],
+    ['photo', '六關，六層濾鏡。\n目標只有一個：讓牠在你眼中，像垂天之雲。']
+  ],
   rotateHint: '請把 iPad／手機橫放。iPad 請在控制中心鎖定畫面旋轉；手機請勿鎖定。',
   startBtn: '開始',
   stageNames: [null, '第一關・比例尺', '第二關・大小', '第三關・速度', '第四關・影子', '第五關・瞇眼', '第六關・躺下'],
@@ -848,7 +922,11 @@ const TEXT = {
     hudTarget: '目標',
     hudDistYak: '與斄牛',
     hudDistCloud: '與雲',
-    g1: (n) => `👆 左右掃動畫面，把身旁的東西逐一掃走（還有 ${n} 件）`,
+    g1: (n) => `👆 點一下身旁的東西，把它移走（還有 ${n} 件）`,
+    g1mt: '👆 最後，點一下遠方的山',
+    g1mtWait: '遠山先留著——先把身旁的東西一件件移走。',
+    g1miss: '點在東西身上：樹、圍欄、穀倉、帳篷、經幡。',
+    skip: '略過 ›',
     g2start: '☝️ 手指按住畫面：向上拖＝走近斄牛，向下拖＝退後',
     g2small: '斄牛在你眼中比雲小 —— 向上拖，再走近一點 ⬆',
     g2big: '斄牛在你眼中比雲大了 —— 向下拖，退後一點 ⬇',
@@ -2621,31 +2699,115 @@ const Measure = {
 };
 
 const STAGES = [null,
-  // 1 比例尺 – swipe away tree, fence, barn, tent, prayer flags, then the distant mountains (A1, A2)
+  // 1 比例尺 – v1.5: TAP (or swipe starting ON) a reference object → THAT object goes; any order.
+  // The distant mountains go last (A2). Missed taps / 5 s idle → the remaining objects glow softly.
   {
-    enter() { this.idx = 0; this.busy = false; this.total = World.refs.length + 1; UI.guideText(TEXT.ui.g1(this.total)); },
-    onSwipe(dir) {
+    enter() {
+      this.idx = 0; this.busy = false; this.total = World.refs.length + 1; this.gone = new Set();
+      this.t = 0; this.idle = 0; this.flashT = 0; this.gk = 0; this.miss = 0; this.missTip = false;
+      this.ray = this.ray || new THREE.Raycaster(); this.box = this.box || new THREE.Box3(); this.v = this.v || new THREE.Vector3();
+      this.all().forEach((g) => this.mats(g).forEach((m) => { m.emissive.setHex(0xffd9a0); m.emissiveIntensity = 0; }));
+      this.guide();
+    },
+    all() { return World.refs.concat([World.mtGroup]); },
+    mats(g) {
+      if (!g.userData.mats) { const s = new Set(); g.traverse((o) => { if (o.material && o.material.emissive) s.add(o.material); }); g.userData.mats = [...s]; }
+      return g.userData.mats;
+    },
+    targets() {
+      const r = World.refs.filter((g, i) => !this.gone.has(i));
+      return r.length ? r : (this.gone.has(World.refs.length) ? [] : [World.mtGroup]);
+    },
+    guide() {
+      const n = this.total - this.idx;
+      UI.guideText(n <= 0 ? null : this.idx >= World.refs.length ? TEXT.ui.g1mt : TEXT.ui.g1(n));
+    },
+    scr(x, y, z) {
+      this.v.set(x, y, z).project(camera);
+      return this.v.z < 1 ? { x: (this.v.x + 1) / 2 * window.innerWidth, y: (1 - this.v.y) / 2 * window.innerHeight } : null;
+    },
+    rect(g) {   // screen rectangle of the object's bounding box
+      const b = this.box.setFromObject(g);
+      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+      for (let k = 0; k < 8; k++) {
+        const p = this.scr(k & 1 ? b.max.x : b.min.x, k & 2 ? b.max.y : b.min.y, k & 4 ? b.max.z : b.min.z);
+        if (!p) return null;
+        x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y);
+      }
+      return { x0, y0, x1, y1 };
+    },
+    // what is under the finger: exact ray hit first, then a generous screen box (thin fence posts / flag lines)
+    pick(cx, cy) {
+      const list = World.refs.map((g, i) => ({ g, i })).filter((o) => o.g.visible && !this.gone.has(o.i));
+      const mt = World.mtGroup.visible && !this.gone.has(World.refs.length) ? { g: World.mtGroup, i: World.refs.length } : null;
+      if (mt) list.push(mt);
+      this.ray.setFromCamera({ x: cx / window.innerWidth * 2 - 1, y: 1 - cy / window.innerHeight * 2 }, camera);
+      const hits = this.ray.intersectObjects(list.map((o) => o.g), true);
+      if (hits.length) {
+        const o = list.find((o) => { for (let p = hits[0].object; p; p = p.parent) if (p === o.g) return true; return false; });
+        if (o) return o;
+      }
+      const k = UI.k || 1, pad = 28 * k;
+      let best = null, bestA = Infinity;
+      list.forEach((o) => {
+        if (o === mt) return;
+        const r = this.rect(o.g);
+        if (r && cx >= r.x0 - pad && cx <= r.x1 + pad && cy >= r.y0 - pad && cy <= r.y1 + pad) {
+          const a = (r.x1 - r.x0) * (r.y1 - r.y0);
+          if (a < bestA) { bestA = a; best = o; }
+        }
+      });
+      if (best || !mt) return best;
+      for (const m of World.mountains) {
+        const p = this.scr(m.x, m.peakY + World.mtGroup.position.y, m.z);
+        if (p && Math.hypot(cx - p.x, (cy - p.y) * 1.6) < 80 * k) return mt;
+      }
+      return null;
+    },
+    onTap(x, y) { if (x !== undefined) this.tryRemove(x, y, 0); },
+    onSwipe(dir, x, y) { if (x !== undefined) this.tryRemove(x, y, dir === 'left' ? -1 : dir === 'right' ? 1 : 0); },
+    tryRemove(x, y, sign) {
       if (this.busy || this.idx >= this.total) return;
-      const sign = dir === 'left' ? -1 : dir === 'right' ? 1 : (Math.random() < 0.5 ? -1 : 1);
-      const i = this.idx++;
-      this.busy = true;
+      const o = this.pick(x, y);
+      if (!o) {
+        this.flashT = 1.6;
+        if (++this.miss >= 2 && !this.missTip) { this.missTip = true; UI.toast(TEXT.ui.g1miss); }
+        return;
+      }
+      const isMt = o.i === World.refs.length;
+      if (isMt && this.idx < World.refs.length) { this.flashT = 1.6; UI.toast(TEXT.ui.g1mtWait); return; }
+      if (!sign) {   // a tap: it flies away from the centre of the view
+        const p = isMt ? null : this.scr(o.g.position.x, o.g.position.y + 1, o.g.position.z);
+        sign = p ? (p.x < window.innerWidth / 2 ? -1 : 1) : (Math.random() < 0.5 ? -1 : 1);
+      }
+      this.remove(o, sign);
+    },
+    remove(o, sign) {
+      const i = o.i, g = o.g;
+      this.busy = true; this.gone.add(i); this.idx++; this.idle = 0; this.miss = 0;
+      this.mats(g).forEach((m) => { m.emissiveIntensity = 0; });
       const done = () => {
         this.busy = false;
         UI.toast(TEXT.refNotes[i]);
-        const left = this.total - this.idx;
-        if (left > 0) UI.guideText(TEXT.ui.g1(left));
+        if (this.total - this.idx > 0) this.guide();
         else { UI.guideText(null); Flow.later(1.0, () => Flow.success()); }
       };
-      if (i < World.refs.length) {
-        const obj = World.refs[i], x0 = obj.position.x, y0 = obj.position.y;
-        Tweens.add(0.7, (k) => { const e = k * k; obj.position.x = x0 + sign * 70 * e; obj.position.y = y0 + 6 * e; },
-          () => { obj.visible = false; done(); });
+      if (g !== World.mtGroup) {
+        const x0 = g.position.x, y0 = g.position.y;
+        Tweens.add(0.7, (k) => { const e = k * k; g.position.x = x0 + sign * 70 * e; g.position.y = y0 + 6 * e; },
+          () => { g.visible = false; done(); });
       } else {
-        const g = World.mtGroup;
         Tweens.add(1.3, (k) => { const e = k * k; g.rotation.y = -sign * 1.3 * e; g.position.y = -2500 * e; },
           () => { g.visible = false; done(); });
       }
-    }
+    },
+    update(dt) {   // soft warm glow on what can be removed now (after a miss, or 5 s without a tap)
+      this.t += dt; this.idle += dt; this.flashT = Math.max(0, this.flashT - dt);
+      const want = !this.busy && (this.flashT > 0 || this.idle > 5) ? 0.22 + 0.14 * Math.sin(this.t * 3.4) : 0;
+      this.gk += (want - this.gk) * (1 - Math.exp(-dt / 0.25));
+      this.targets().forEach((g) => this.mats(g).forEach((m) => { m.emissiveIntensity = this.gk; }));
+    },
+    exit() { this.all().forEach((g) => this.mats(g).forEach((m) => { m.emissiveIntensity = 0; })); }
   },
   // 2 大小 – v1.4: drag = walk toward / away from the 斄牛 at a human pace (head bob, forward faster than backward,
   // footsteps on the grass); HUD + brackets show θ; finally swipe away HUD + mini-map together ("最後一把尺")
@@ -3402,9 +3564,9 @@ const Input = {
     if (h && g) {
       if (n === 1 && g.max === 1) {
         const dt = performance.now() - g.t0, tx = p.x - g.c0.x, ty = p.y - g.c0.y;
-        if (Math.abs(tx) > 60 && Math.abs(tx) > Math.abs(ty) * 1.2 && dt < 900) { if (h.onSwipe) h.onSwipe(tx > 0 ? 'right' : 'left'); }
-        else if (Math.abs(ty) > 60 && Math.abs(ty) > Math.abs(tx) * 1.2 && dt < 900) { if (h.onSwipe) h.onSwipe(ty > 0 ? 'down' : 'up'); }
-        else if (g.moved < 12 && h.onTap) h.onTap();
+        if (Math.abs(tx) > 60 && Math.abs(tx) > Math.abs(ty) * 1.2 && dt < 900) { if (h.onSwipe) h.onSwipe(tx > 0 ? 'right' : 'left', g.c0.x, g.c0.y); }
+        else if (Math.abs(ty) > 60 && Math.abs(ty) > Math.abs(tx) * 1.2 && dt < 900) { if (h.onSwipe) h.onSwipe(ty > 0 ? 'down' : 'up', g.c0.x, g.c0.y); }
+        else if (g.moved < 12 && h.onTap) h.onTap(p.x, p.y);
       } else if (n === 2 && g.twoC) {
         const c = this.centroid(), ty = c.y - g.twoC.y;
         if (Math.abs(ty) > 60 && h.onTwoSwipe) h.onTwoSwipe(ty > 0 ? 'down' : 'up');
@@ -4294,7 +4456,50 @@ const Ending = {
     }
   }
 };
-
+// ==== SECTION: INTRO (v1.5 第0關) ====
+// After the 開始 tap (iOS: gyro / sound permission need that tap). Lines one by one (tap to continue, 略過 skips).
+// quote → flat yellow ox + cloud (SVG) → "photo": a hole in a dark sheet through which the FROZEN stage-1 3D view
+// shows (white print border, dull filter, gloss) → the frame grows out of the screen, the world starts moving → stage 1.
+// Frozen = the main loop runs with dt = 0 (Intro.frozen).
+const Intro = {
+  el: null, txt: null, i: 0, tk: 0, frozen: false, tapOK: false, fin: false, done: null,
+  init() {
+    this.el = $('intro'); this.txt = $('inText');
+    $('inTap').textContent = TEXT.ui.tap;
+    $('inSkip').textContent = TEXT.ui.skip;
+    this.el.addEventListener('pointerup', (e) => {
+      e.preventDefault();
+      if (!this.tapOK || this.fin) return;
+      this.tapOK = false; this.el.classList.remove('tappable'); this.next();
+    });
+    $('inSkip').addEventListener('pointerup', (e) => { e.preventDefault(); e.stopPropagation(); this.finish(); });
+  },
+  later(s, fn) { const tk = this.tk; setTimeout(() => { if (tk === this.tk) fn(); }, s * 1000); },
+  play(done) {
+    this.done = done; this.i = 0; this.tk++; this.fin = false; this.tapOK = false; this.frozen = true;
+    this.el.className = 'on quote';
+    this.later(0.9, () => this.step());          // after the start screen has faded
+  },
+  step() {
+    const [sc, t] = TEXT.intro[this.i], el = this.el;
+    UI.swapText(this.txt, t, {
+      prep: () => { ['quote', 'art', 'photo'].forEach((c) => el.classList.toggle(c, c === sc)); },   // scene changes while the text is hidden
+      onIn: () => this.later(Math.min(3, 0.9 + t.length * 0.03), () => { this.tapOK = true; el.classList.add('tappable'); })
+    });
+  },
+  next() { if (++this.i < TEXT.intro.length) this.step(); else this.finish(); },
+  finish() {
+    if (this.fin || !this.el.classList.contains('on')) return;
+    this.fin = true; this.tk++; this.tapOK = false;
+    const el = this.el;
+    UI.swapText(this.txt, null);
+    el.classList.remove('tappable', 'quote', 'art');
+    el.classList.add('photo', 'out');            // the white frame grows out of the screen
+    this.later(0.5, () => { this.frozen = false; });   // the photo comes alive
+    this.later(1.9, () => { el.className = ''; const d = this.done; this.done = null; if (d) d(); });
+  },
+  stop() { this.tk++; this.fin = true; this.frozen = false; this.tapOK = false; this.done = null; if (this.el) this.el.className = ''; }
+};
 // ==== SECTION: MAIN ====
 // M8B auto quality: average FPS < minFps over windowS s while playing → pixel ratio one step lower
 // (2 → 1.5 → 1.25), renderer + PostFX resized, no reload. Pixel ratio never above 2 (SECTION RENDERER).
@@ -4337,7 +4542,7 @@ let lastFrameErr = '';
 function frame() {
   requestAnimationFrame(frame);
   try {
-    const raw = clock.getDelta(), dt = Math.min(raw, 0.05);
+    const raw = clock.getDelta(), dt = Intro.frozen ? 0 : Math.min(raw, 0.05);   // v1.5: 第0關 photo = frozen world
     Grass.uniforms.uTime.value += dt;
     Tweens.update(dt);
     Flow.update(dt);
@@ -4376,12 +4581,15 @@ function onStart() {
   st.classList.add('hide');
   setTimeout(() => { st.style.display = 'none'; }, 900);
   const p = DEBUG.startStage();
-  if (p === 'end') Ending.start(); else Flow.begin(p);
+  if (p === 'end') Ending.start();
+  else if (p === 1 && !DEBUG.stageParam) Intro.play(() => Flow.begin(1));   // v1.5: 第0關 引子 → 第一關
+  else Flow.begin(p);
 }
 
 // A14: 「再來一次」 – restart INSIDE the page (no reload: works in previews / iframes / home-screen apps, no re-download)
 function restart() {
   Flow.token++;                                   // cancels every pending Flow.later
+  Intro.stop(); STAGES[1].exit();                 // v1.5: no intro / no glow left over on the start screen
   Flow.state = 'start'; Flow.n = 0; Flow.stage = null;
   Input.handlers = null;
   Ending.active = false; Ending.blank = false; Ending.furA = 0; Ending.warmOn = false; Ending.cues = [];
@@ -4410,6 +4618,7 @@ function boot() {
   Lighting.build();
   PostFX.init();
   UI.init();
+  Intro.init();                      // v1.5: 第0關 引子
   AudioFX.init();                    // M8: 🔈 button (default OFF, no AudioContext until it is tapped)
   Minimap.init();
   Input.init(canvas);
