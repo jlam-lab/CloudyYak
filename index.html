@@ -361,14 +361,15 @@
     opacity: 0; transition: opacity .5s ease; text-shadow: 0 2px 12px rgba(0,0,0,.7); }
   #inText.show { opacity: 1; }
   #intro.art #inText { top: 64%; transform: none; }
-  #intro.photo #inText { top: 77%; transform: none; font-size: max(13px, calc(24px * var(--k))); line-height: 1.55; }
+  #intro.photo #inText { top: var(--tY, 85%); transform: translateY(-50%); font-size: max(13px, calc(24px * var(--k))); line-height: 1.55; }
   #inArt { position: absolute; left: 50%; top: 9%; width: min(78vw, calc(620px * var(--k))); height: auto;
     transform: translateX(-50%); opacity: 0; transition: opacity .8s ease; }
   #intro.art #inArt { opacity: 1; }
   #inArt .cld { animation: inFloat 6s ease-in-out infinite; }
   @keyframes inFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
   /* the "photo" = a hole in a dark sheet: the frozen stage-1 3D view shows through, white print border */
-  #inPhoto { position: absolute; left: 9%; right: 9%; top: 6%; bottom: 26%; box-sizing: border-box; border-radius: 3px;
+  #inPhoto { position: absolute; left: var(--fx, 20%); top: var(--fy, 12%); width: var(--fw, 60%); height: var(--fh, 60%);
+    box-sizing: border-box; border-radius: 3px;
     border: calc(12px * var(--k)) solid #f3efe6; border-bottom-width: calc(30px * var(--k));
     box-shadow: 0 0 0 200vmax rgba(5,8,15,.94); opacity: 0; transform: scale(1.06);
     transition: opacity .6s ease, transform 1.2s cubic-bezier(.2,.7,.3,1), box-shadow 1.4s ease; }
@@ -378,9 +379,10 @@
     background: linear-gradient(118deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.14) 42%, rgba(255,255,255,.04) 50%, rgba(255,255,255,0) 60%),
                 radial-gradient(ellipse at 30% 20%, rgba(255,255,255,.10), rgba(255,255,255,0) 55%); }
   @supports not ((backdrop-filter: none) or (-webkit-backdrop-filter: none)) { #inPhoto .fx { background-color: rgba(40,30,15,.22); } }
-  #intro.out #inPhoto { opacity: 1; transform: scale(1.9); box-shadow: 0 0 0 200vmax rgba(5,8,15,0);
+  #intro.out #inPhoto { opacity: 1; transform: scale(var(--fs, 2.4)); box-shadow: 0 0 0 200vmax rgba(5,8,15,0);
     transition: transform 1.6s cubic-bezier(.5,0,.75,.3), box-shadow 1.2s ease; }
-  #intro.out #inPhoto .fx { opacity: 0; }
+  /* v1.5b: iOS Safari cannot fade a backdrop-filter → remove it at once; only the gloss fades */
+  #intro.out #inPhoto .fx { -webkit-backdrop-filter: none; backdrop-filter: none; opacity: 0; }
   #intro.out #inText, #intro.out #inTap, #intro.out #inSkip { opacity: 0 !important; }
   #inTap { position: absolute; left: 0; right: 0; bottom: calc(14px * var(--k) + env(safe-area-inset-bottom, 0px)); text-align: center;
     font-size: max(10px, calc(15px * var(--k))); letter-spacing: .2em; opacity: 0; transition: opacity 1s ease; }
@@ -2739,7 +2741,9 @@ const STAGES = [null,
     // what is under the finger: exact ray hit first, then a generous screen box (thin fence posts / flag lines)
     pick(cx, cy) {
       const list = World.refs.map((g, i) => ({ g, i })).filter((o) => o.g.visible && !this.gone.has(o.i));
-      const mt = World.mtGroup.visible && !this.gone.has(World.refs.length) ? { g: World.mtGroup, i: World.refs.length } : null;
+      // v1.5b: the mountains can be picked only after every nearby object is gone (their big hit area hid the far objects)
+      const mt = this.idx >= World.refs.length && World.mtGroup.visible && !this.gone.has(World.refs.length)
+        ? { g: World.mtGroup, i: World.refs.length } : null;
       if (mt) list.push(mt);
       this.ray.setFromCamera({ x: cx / window.innerWidth * 2 - 1, y: 1 - cy / window.innerHeight * 2 }, camera);
       const hits = this.ray.intersectObjects(list.map((o) => o.g), true);
@@ -4461,8 +4465,12 @@ const Ending = {
 // quote → flat yellow ox + cloud (SVG) → "photo": a hole in a dark sheet through which the FROZEN stage-1 3D view
 // shows (white print border, dull filter, gloss) → the frame grows out of the screen, the world starts moving → stage 1.
 // Frozen = the main loop runs with dt = 0 (Intro.frozen).
+// v1.5b: the photo is 4:3 (picture area) and placed around the 斄牛 (rule of thirds), text in the larger free band.
 const Intro = {
   el: null, txt: null, i: 0, tk: 0, frozen: false, tapOK: false, fin: false, done: null,
+  // h = picture height (share of the screen height), w = max picture width (share of the width),
+  // ax / ay = where the 斄牛 sits inside the picture (0…1 from the left / top)
+  PH: { h: 0.58, w: 0.6, ax: 0.36, ay: 0.66 },
   init() {
     this.el = $('intro'); this.txt = $('inText');
     $('inTap').textContent = TEXT.ui.tap;
@@ -4473,17 +4481,43 @@ const Intro = {
       this.tapOK = false; this.el.classList.remove('tappable'); this.next();
     });
     $('inSkip').addEventListener('pointerup', (e) => { e.preventDefault(); e.stopPropagation(); this.finish(); });
+    window.addEventListener('resize', () => setTimeout(() => { if (this.el.classList.contains('on')) this.layout(); }, 400));
+  },
+  // frame position / size, text band and exit scale → CSS variables on #intro
+  layout() {
+    if (!this.el) return;
+    const P = this.PH, W = window.innerWidth, H = window.innerHeight, k = UI.k || 1, b = 12 * k, bb = 30 * k;
+    const v = this._v || (this._v = new THREE.Vector3()), y = Yak.group.position;
+    camera.updateMatrixWorld();
+    v.set(y.x, y.y + CONFIG.yak.mid, y.z).project(camera);
+    const yx = (v.x + 1) / 2 * W, yy = (1 - v.y) / 2 * H;                       // the 斄牛 on screen (px)
+    const ih = Math.min(H * P.h, W * P.w * 0.75), iw = ih * 4 / 3;              // picture area 4:3
+    const ow = iw + 2 * b, oh = ih + b + bb;                                    // + white print border
+    const m = Math.max(24, 0.05 * W), topMin = 14 * k + 44, botMax = H - 36 * k;
+    const fx = clamp(yx - P.ax * iw - b, m, W - m - ow);
+    const fy = clamp(yy - P.ay * ih - b, 8, botMax - oh);
+    const up = fy - topMin, dn = botMax - (fy + oh);
+    const tY = up >= dn ? topMin + up / 2 : fy + oh + dn / 2;                   // text: the larger free band
+    const cx = fx + ow / 2, cy = fy + oh / 2;
+    const fs = 1.08 * Math.max(2 * Math.max(cx, W - cx) / ow, 2 * Math.max(cy, H - cy) / oh);   // grows fully off-screen
+    const s = this.el.style;
+    [['--fx', fx], ['--fy', fy], ['--fw', ow], ['--fh', oh], ['--tY', tY]].forEach(([n, x]) => s.setProperty(n, x.toFixed(1) + 'px'));
+    s.setProperty('--fs', fs.toFixed(3));
   },
   later(s, fn) { const tk = this.tk; setTimeout(() => { if (tk === this.tk) fn(); }, s * 1000); },
   play(done) {
     this.done = done; this.i = 0; this.tk++; this.fin = false; this.tapOK = false; this.frozen = true;
+    this.layout();
     this.el.className = 'on quote';
     this.later(0.9, () => this.step());          // after the start screen has faded
   },
   step() {
     const [sc, t] = TEXT.intro[this.i], el = this.el;
     UI.swapText(this.txt, t, {
-      prep: () => { ['quote', 'art', 'photo'].forEach((c) => el.classList.toggle(c, c === sc)); },   // scene changes while the text is hidden
+      prep: () => {                                // scene changes while the text is hidden
+        if (sc === 'photo') this.layout();
+        ['quote', 'art', 'photo'].forEach((c) => el.classList.toggle(c, c === sc));
+      },
       onIn: () => this.later(Math.min(3, 0.9 + t.length * 0.03), () => { this.tapOK = true; el.classList.add('tappable'); })
     });
   },
@@ -4492,9 +4526,10 @@ const Intro = {
     if (this.fin || !this.el.classList.contains('on')) return;
     this.fin = true; this.tk++; this.tapOK = false;
     const el = this.el;
+    this.layout();
     UI.swapText(this.txt, null);
     el.classList.remove('tappable', 'quote', 'art');
-    el.classList.add('photo', 'out');            // the white frame grows out of the screen
+    el.classList.add('photo', 'out');            // the white frame grows out of the screen, the filter goes at once
     this.later(0.5, () => { this.frozen = false; });   // the photo comes alive
     this.later(1.9, () => { el.className = ''; const d = this.done; this.done = null; if (d) d(); });
   },
