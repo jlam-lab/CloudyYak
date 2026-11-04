@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>看牛的方式 v1.2</title>
+<title>看牛的方式 v1.4</title>
 <style>
   html, body {
     margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000;
@@ -185,10 +185,15 @@
   #gyroBtn.show { opacity: .92; pointer-events: auto; }
 
   /* ---------- overlays outside the fading UI layer ---------- */
-  #flash { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 15;
-    background: radial-gradient(ellipse at center, rgba(255,250,235,.55) 0%, rgba(255,250,235,0) 70%);
-    opacity: 0; transition: opacity 1.4s ease; }
-  #flash.on { opacity: 1; transition: opacity .15s ease; }
+  #flash { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 15; overflow: hidden;
+    background: radial-gradient(ellipse at center, rgba(255,252,240,.95) 0%, rgba(255,236,190,.55) 40%, rgba(255,240,210,.12) 75%, rgba(255,250,235,0) 100%);
+    opacity: 0; }
+  #flash.on { animation: flashPulse 1.8s ease-out forwards; }
+  @keyframes flashPulse { 0% { opacity: 0; } 7% { opacity: 1; } 22% { opacity: .3; } 34% { opacity: .9; } 100% { opacity: 0; } }
+  #flash::after { content: ""; position: absolute; left: 50%; top: 50%; width: 36vmin; height: 36vmin; margin: -18vmin 0 0 -18vmin;
+    border-radius: 50%; border: 3px solid rgba(255,236,190,.95); box-shadow: 0 0 30px rgba(255,236,190,.8), inset 0 0 30px rgba(255,236,190,.5); opacity: 0; }
+  #flash.on::after { animation: flashRing 1.5s cubic-bezier(.2,.7,.3,1) forwards; }
+  @keyframes flashRing { 0% { transform: scale(.25); opacity: 0; } 12% { opacity: 1; } 100% { transform: scale(2.6); opacity: 0; } }
 
   #release { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 20;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -548,14 +553,14 @@ const CONFIG = {
   },
   yak: {
     s: 10, x: 0,                 // default: 10 m from the observer, just behind the crest
-    scale: 1.25,                 // model is built at 2.8 m and shown 25 % bigger (teacher request)
+    scale: 1.4,                  // v1.4: model built at 2.8 m, shown 40 % bigger (A3 was 1.25)
     // REAL (scaled) sizes, used by HUD / geometry checks:
-    length: 3.5, shoulder: 2.0, top: 2.15, mid: 1.19,
+    length: 3.92, shoulder: 2.24, top: 2.41, mid: 1.33,
     // M9a: skirtHem = REAL hem (where most hair ends), ragged tips ±skirtRag; the hem stays ≥ skirtClear above the ground
-    skirtHem: 0.22, skirtTop: 1.06, hoof: 0.125, skirtRag: 0.05, skirtClear: 0.02,
+    skirtHem: 0.22, skirtTop: 1.19, hoof: 0.14, skirtRag: 0.05, skirtClear: 0.02,
     // cloud-like white: very light, almost no yellow
     color: 0xf6f4ef, skirtColor: 0xefece5, furShells: 10, furLen: 0.06, skirtShells: 6, skirtLen: 0.07,
-    stride: 1.6                  // m travelled per full walk cycle (legs are driven by real displacement)
+    stride: 1.8                  // m travelled per full walk cycle (legs are driven by real displacement)
   },
   // 「垂天之雲」: a towering cumulus 3.5 km wide, ~10 km away
   cloud: { width: 3500, height: 2400, depth: 1900, dist: 9500, bearingDeg: 14, centerY: 3550, puffs: 240 },
@@ -578,15 +583,17 @@ const CONFIG = {
   sky: { top: 0x1d56b8, horizon: 0xa9cdee },
   fogDensity: 0.000035,
   sizeWindow: [0.8, 1.25],
-  stage2: { startD: 40, minD: 6, maxD: 45, dragK: 0.0024, holdS: 1.2 },
+  stage2: { startD: 40, minD: 6, maxD: 45, dragK: 0.0032, dragKBack: 0.0018, holdS: 1.2,
+    vFwd: 4.0, vBack: 1.6, follow: 2.5, acc: 4.0,   // v1.4: human pace – forward faster than backward (m/s, m/s²)
+    walk: { stepMin: 0.6, stepMax: 0.95, fullV: 1.2, bobY: 0.035, nodDeg: 0.6, rollDeg: 0.7, backAmp: 0.75 } },
   // stage 3 速度: the 斄牛 first steps back behind the crest (startS), the student steers it with a direction dial
   // RELATIVE TO THE OBSERVER (A12: 0 = around you, leftward with the wind; 1 = straight toward your eye), a gait slider
   // and a wind slider (A10). Lateral ω ≈ v·cos(a)/d, looming ≈ v·sin(a)/d. Speeds m/s, angular °/s, looming %/s.
   stage3: {
-    startS: 13.2, startX: 1.5,   // start spot: mostly hidden behind the crest (≈ 28 % visible)
+    startS: 13.2, startX: 3.5,   // start spot: mostly hidden behind the crest (≈ 28 % visible)
     riseS: 10.9,                 // success also needs the 斄牛 to have risen over the crest (s ≤ riseS)
-    minS: 10.05,                 // reaching here without success → it stops (stopS s), then walks back to startS
-    xMin: -5.5, xMax: 5.5,       // sideways walking turns around at these x limits
+    minS: 9.5, retreatS: 12.0, crestPass: 0.6,                 // reaching here without success → it stops (stopS s), then walks back to startS
+    xMin: -5.5, xMax: 6.5,       // sideways walking turns around at these x limits
     vMin: 0.02, vMax: 0.6, gaitPow: 2,   // gait slider u → speed vMin + (vMax − vMin)·u^gaitPow (ideal ≈ 40 %)
     defaultGait: 0.75, defaultDir: 0, defaultWind: 0.35,
     slowV: 0.3,                  // "slow gait"
@@ -598,8 +605,8 @@ const CONFIG = {
     loomMin: 0.1, loomMax: 4.0, loomIdeal: 1.0,    // looming window (%/s), target ≈ 1 %/s (A14; A12 was 0.25–3)
     holdS: 2.5, missGraceS: 1, drainK: 0,  // A14: OK time ADDS UP (a miss never takes it away, kept after a walk-back);
                                            // success once it is full – no "risen" condition (riseS: geometry check only)
-    measureTau: 0.8, okTau: 0.6,
-    turnRate: 0.9, speedTau: 0.8, introV: 0.4, retreatV: 0.4, settleV: 0.25,   // A14: 0.15 → 0.25 (crosses the crest during 凝視)
+    measureTau: 0.55, okTau: 0.6,
+    turnRate: 1.18, speedTau: 0.5, introV: 0.4, retreatV: 0.4, settleV: 0.25,   // A14: 0.15 → 0.25 (crosses the crest during 凝視)
     stopS: 2,                    // A12: at the crest without success it stands still this long, then walks back
     bandAfter: 2,                // A12: faint target bands after this many failed attempts
     refD: 11,                    // A12: distance (m) used for the zone check / target bands (where success happens)
@@ -612,11 +619,12 @@ const CONFIG = {
   // how the two sliders shape the light (k = how far the sky slider is above its default, 0…1)
   light4: { sunMin: 0.65, radius0: 2, radius1: 7, rimMax: 0.35, bloom0: 0.08, bloom1: 0.5, exposureUp: 0.12, cloudAmbUp: 0.3 },
   // stage 5 瞇眼: two-finger vertical pinch closes the eyelids (lid 0 = open … 1 = nearly shut)
-  stage5: { pinchK: 0.45, relax: 0.04, lidOK: 0.7, clearAt: 0.7, holdS: 2.5, glare: 0.6, idleHintS: 8 },   // A14: icon after idleHintS s
+  stage5: { pinchK: 0.45, relax: 0.04, lidOK: 0.6, clearAt: 0.6, holdS: 2.5, glare: 0.6, idleHintS: 8,
+    lidY: 0.47, visOK: 0.85 },   // v1.4: eyelid centre in stage 5 (on the 斄牛); ≥ 85 % of the visible 斄牛 inside the opening
   // post-processing (stage 4+): bloom, near-grass depth of field, haze, eyelid mask, glare
   postfx: { maxBlurPx: 7, focusNear: 4.2, focusFar: 7.2, hazeMax: 0.3, hazeDist: 1500, bloomRadius: 0.55,
     bloomThreshold: 0.9, bloomGlare: 0.3, tau: 0.7, lidTau: 0.12 },
-  gaze: { fadeS: 1.0, seconds: 3, swayY: 0.015, swayPitchDeg: 0.3, swayRollDeg: 0.15, period: 4.2 },
+  gaze: { fadeS: 1.0, seconds: 3, seconds1: 1.2, swayY: 0.015, swayPitchDeg: 0.3, swayRollDeg: 0.15, period: 4.2 },
   // M9b: half-closed eyes + blinks from the stage-6 success until the fur sink (eyelid mask; 0 = open … 1 = shut).
   // base ± drift (with the breathing) settles in over settleS s; a blink every `every` s after the last one (≥ minGap);
   // close / open s; doubleP = double blink (2nd after doubleGap s); drowsyP = slow blink [close, hold, open] s;
@@ -826,7 +834,7 @@ const TEXT = {
     '試試換一個角度——連「我」也暫且放下。'
   ],
   victory: '渾融萬物而齊一',
-  ending: ['眼前的斄牛，大到跟雲一樣。', '但，牠有什麼用？', '你抱了上去，感覺軟綿綿的、很溫暖。'],
+  ending: ['眼前的斄牛，大到跟雲一樣。', '但，牠有什麼用？', '軟綿綿的、很溫暖。'],
   ui: {
     tap: '輕觸繼續',
     done: '完成（測試用）',
@@ -888,6 +896,7 @@ const TEXT = {
     g5idle: '✌️ 試試看：兩隻手指同時按住畫面，像捏東西一樣慢慢靠近',
     g5hold: '就是這樣……手指停住，不要放開，數三下',
     g5lost: '眼睛又張開了——瞇起來之後，手指要停住約三秒。',
+    g5tight: '瞇得太緊了，眼皮把斄牛遮住了 —— 手指稍稍放開一點，讓牠整頭露出來',
     pinchCap: '像這樣：兩隻手指慢慢合攏，然後停住',
     endThanks: '遊戲結束，感謝遊玩',
     again: '再來一次',
@@ -2303,13 +2312,13 @@ const Eyes = {
     this.flat = w * ks * B.flat;
   },
   // fully open band of the eyelid mask at screen x (−1…1), same numbers as the PostFX shader → { bot, top } in uv.y
-  edges(lid, xx) {
+  edges(lid, xx, c = 0.55) {
     const gap = lerp(0.62, 0.13, lid), cv = (0.05 + 0.06 * lid) * xx * xx, f = 0.015 + 0.035 * lid;
-    return { bot: 0.55 - gap * 0.85 + cv + f, top: 0.55 + gap - cv - f };
-  }
+    return { bot: c - gap * 0.85 + cv + f, top: c + gap - cv - f };
+    }
 };
 const PostFX = {
-  ok: false, on: false, bloomLight: 0, _sz: new THREE.Vector2(),
+  ok: false, on: false, bloomLight: 0, lidYT: 0.55, _sz: new THREE.Vector2(),
   v: { blur: 0, haze: 0, lid: 0, glare: 0, flat: 0 },
   tgt: { blur: 0, haze: 0, lid: 0, glare: 0, flat: 0 },
   init() {
@@ -2327,7 +2336,7 @@ const PostFX = {
           tColor: { value: this.rt.texture }, tDepth: { value: this.rt.depthTexture },
           uRes: { value: new THREE.Vector2(w, h) }, cNear: { value: camera.near }, cFar: { value: camera.far },
           uMaxR: { value: P.maxBlurPx * renderer.getPixelRatio() }, uF0: { value: P.focusNear }, uF1: { value: P.focusFar },
-          uBlur: { value: 0 }, uHaze: { value: 0 }, uLid: { value: 0 }, uGlare: { value: 0 }, uFlat: { value: 0 },
+          uBlur: { value: 0 }, uHaze: { value: 0 }, uLid: { value: 0 }, uGlare: { value: 0 }, uFlat: { value: 0 }, uLidY: { value: 0.55 },
           uHazeMax: { value: P.hazeMax }, uHazeDist: { value: P.hazeDist },
           uHazeCol: { value: new THREE.Color(CONFIG.sky.horizon).multiplyScalar(1.1) },
           uLidCol: { value: new THREE.Vector3(0.07, 0.05, 0.045) }
@@ -2350,6 +2359,7 @@ const PostFX = {
           uniform float uLid;
           uniform float uGlare;
           uniform float uFlat;
+          uniform float uLidY;
           uniform float uHazeMax;
           uniform float uHazeDist;
           uniform vec3 uHazeCol;
@@ -2399,8 +2409,8 @@ const PostFX = {
               float xx = (vUv.x - 0.5) * 2.0;
               float gap = mix(0.62, 0.13, uLid);
               float cv = (0.05 + 0.06 * uLid) * xx * xx;
-              float top = 0.55 + gap - cv;
-              float bot = 0.55 - gap * 0.85 + cv;
+              float top = uLidY + gap - cv;
+              float bot = uLidY - gap * 0.85 + cv;
               float f = 0.015 + 0.035 * uLid;
               float open = (1.0 - smoothstep(top - f, top, vUv.y)) * smoothstep(bot, bot + f, vUv.y);
               float shade = (1.0 - smoothstep(top - 5.0 * f, top, vUv.y)) * smoothstep(bot, bot + 5.0 * f, vUv.y);
@@ -2428,6 +2438,7 @@ const PostFX = {
   },
   apply(n) {
     this.on = n >= 4;
+    this.lidYT = n === 5 ? CONFIG.stage5.lidY : 0.55;
     const T = this.tgt;
     T.blur = 0; T.haze = 0; T.lid = 0; T.glare = 0; T.flat = 0;
     if (n === 5) { T.blur = 1; T.haze = 1; }   // stage 5 default: focus far, near grass blurred, slight haze
@@ -2452,6 +2463,7 @@ const PostFX = {
     u.uLid.value = Math.max(v.lid < 0.002 ? 0 : v.lid, Eyes.lid < 0.002 ? 0 : Eyes.lid);
     u.uGlare.value = v.glare;
     u.uFlat.value = Math.max(v.flat, Eyes.flat);
+    u.uLidY.value += (this.lidYT - u.uLidY.value) * k;
 
   },
   render() {
@@ -2622,7 +2634,7 @@ const STAGES = [null,
         UI.toast(TEXT.refNotes[i]);
         const left = this.total - this.idx;
         if (left > 0) UI.guideText(TEXT.ui.g1(left));
-        else { UI.guideText(null); Flow.later(2.8, () => Flow.success()); }
+        else { UI.guideText(null); Flow.later(1.0, () => Flow.success()); }
       };
       if (i < World.refs.length) {
         const obj = World.refs[i], x0 = obj.position.x, y0 = obj.position.y;
@@ -2635,13 +2647,18 @@ const STAGES = [null,
       }
     }
   },
-  // 2 大小 – drag to change observer distance; HUD + brackets show θ; finally swipe away HUD + mini-map together ("最後一把尺")
+  // 2 大小 – v1.4: drag = walk toward / away from the 斄牛 at a human pace (head bob, forward faster than backward,
+  // footsteps on the grass); HUD + brackets show θ; finally swipe away HUD + mini-map together ("最後一把尺")
   {
-    enter() { this.hold = 0; this.matched = false; this.gone = false; this.touched = false; UI.holdK = 0; UI.guideText(TEXT.ui.g2start); },
+    enter() {
+      this.hold = 0; this.matched = false; this.gone = false; this.touched = false; UI.holdK = 0;
+      this.tD = Rig.d; this.v = 0; this.ph = 0; this.bobK = 0; this.steps = 0;
+      UI.guideText(TEXT.ui.g2start);
+    },
     onDrag(dx, dy) {
       if (this.matched) return;
       const S = CONFIG.stage2;
-      Rig.d = clamp(Rig.d * Math.exp(dy * S.dragK), S.minD, S.maxD);   // drag up = walk toward 斄牛
+      this.tD = clamp(this.tD * Math.exp(dy * (dy < 0 ? S.dragK : S.dragKBack)), S.minD, S.maxD);   // up = forward
       if (Math.abs(dy) > 0.5) this.touched = true;
     },
     onSwipe(dir) {
@@ -2651,7 +2668,25 @@ const STAGES = [null,
       UI.guideText(null);
       Flow.later(1.2, () => Flow.success());
     },
+    // the observer walks to the drag target (v < 0 = forward); every step bobs the head
+    walk(dt) {
+      if (dt <= 0) return;
+      const S = CONFIG.stage2, W = S.walk, gap = this.tD - Rig.d;
+      const want = clamp(gap * S.follow, -S.vFwd, S.vBack);
+      this.v += clamp(want - this.v, -S.acc * dt, S.acc * dt);
+      const nd = Rig.d + this.v * dt;
+      if ((this.tD - nd) * gap <= 0) { Rig.d = this.tD; this.v = 0; } else Rig.d = clamp(nd, S.minD, S.maxD);
+      const sp = Math.abs(this.v), p0 = this.ph;
+      this.ph += sp * dt / lerp(W.stepMin, W.stepMax, clamp(sp / S.vFwd, 0, 1)) * Math.PI;   // π per step
+      if (Math.floor(this.ph / Math.PI) > Math.floor(p0 / Math.PI)) this.steps++;          // a foot lands (AUDIO)
+      this.bobK += (clamp(sp / W.fullV, 0, 1) - this.bobK) * (1 - Math.exp(-dt / 0.2));
+      const k = this.bobK * (this.v > 0 ? W.backAmp : 1), s = Math.sin(this.ph), a = Math.abs(s) - 0.64;
+      Rig.yAdd = W.bobY * k * a;            // lowest when the foot lands
+      Rig.pitchFx = W.nodDeg * k * a;       // small nod down on each landing
+      Rig.rollAdd = W.rollDeg * k * s;      // sway left / right once per two steps
+    },
     update(dt) {
+      this.walk(dt);
       if (this.matched) return;
       const m = Measure.compute(), w = CONFIG.sizeWindow, S = CONFIG.stage2;
       const inWin = m.ratio >= w[0] && m.ratio <= w[1];
@@ -2661,9 +2696,10 @@ const STAGES = [null,
       else UI.guideText(inWin ? TEXT.ui.g2in : (m.ratio < w[0] ? TEXT.ui.g2small : TEXT.ui.g2big));
       if (this.hold >= S.holdS) {
         this.matched = true;
+        this.tD = Rig.d;                  // stop walking here
         UI.holdK = 1;
         UI.updateHud(true);
-        UI.showLastRuler(true);           // HUD + mini-map glow together
+        UI.showLastRuler(true);
         UI.guideText(TEXT.ui.g2ruler);
         UI.showHint(TEXT.ui.hint2b);
       }
@@ -2753,9 +2789,12 @@ const STAGES = [null,
       else if (this.last === 'side') UI.toast(U.g3retreat2);
     },
     turnTo(want, dt, rate) {
-      const d = wrapA(want - this.yaw), st = clamp(d, -rate * dt, rate * dt);
-      this.yaw = wrapA(this.yaw + st);
-      this.turning = Math.abs(st) / dt;
+    let d = wrapA(want - this.yaw);
+    // v1.4: a big turn always swings round through "facing you" (sin yaw < 0), never turning its back
+    if (Math.abs(d) > 2.2 && Math.sin(this.yaw + d / 2) > 0) d -= Math.sign(d) * 2 * Math.PI;
+    const st = clamp(d, -rate * dt, rate * dt);
+    this.yaw = wrapA(this.yaw + st);
+    this.turning = Math.abs(st) / dt;
     },
     speedTo(v, dt) { this.spd += (v - this.spd) * (1 - Math.exp(-dt / CONFIG.stage3.speedTau)); },
     // walk toward a point (x, s); returns the remaining distance
@@ -2783,7 +2822,7 @@ const STAGES = [null,
         this.speedTo(0, dt);
         if ((this.stopT += dt) >= C.stopS) this.startRetreat();
       } else if (this.mode === 'retreat') {
-        if (this.steer(dt, this.rx, C.startS, C.retreatV) < 0.15) this.startPlay();
+        if (this.steer(dt, this.rx, C.retreatS, C.retreatV) < 0.15) this.startPlay();
       } else if (this.mode === 'play') {
         // A12: cos a along the tangent around the observer, sin a straight toward the observer's eye
         const a = rad(this.dir * 90), v = this.vNow(), ca = Math.cos(a), sa = Math.sin(a);
@@ -2841,6 +2880,7 @@ const STAGES = [null,
     evaluate(dt) {
       const C = CONFIG.stage3, U = TEXT.ui, J = this.J;
       if (this.s <= C.minS) {            // at the crest without success → stop, say gently what was missing, then walk back
+      if (this.hold >= C.holdS * C.crestPass) { Flow.success(); return; }   // v1.4: nearly there → it simply walks on
         this.mode = 'stop'; this.stopT = 0; this.miss = 0; this.fails++;   // A14: hold kept
         this.okD = 0; this.okS = 0; UI.ctlOK(0, false); UI.ctlOK(1, false); Gauge3.next(-1);
         UI.guideText(this.last === 'fast' ? U.g3stopFast : this.last === 'side' ? U.g3stopSide : U.g3stopShort);
@@ -2930,34 +2970,49 @@ const STAGES = [null,
   //      squinted ≥ 0.4 s, then opened again before success = one failure → gentle toast (hold about 3 s).
   {
     enter() {
-      this.lid = 0; this.hold = 0; this.touched = false; this.idle = 0; this.icon = false; this.wasOK = false; this.fails = 0;
+      this.lid = 0; this.hold = 0; this.touched = false; this.idle = 0; this.icon = false; this.wasOK = false; this.fails = 0; this.vis = 1;
+      const Y = CONFIG.yak;   // v1.4: world height where the standing crest line (with grass) cuts the 斄牛
+      this.cutY = groundH(0, 0) + CONFIG.eyeStand + horizonSlope(CONFIG.eyeStand, 0, Y.s - 0.6, true) * Y.s;
       PostFX.squint(0);
       UI.guideText(TEXT.ui.g5start);
     },
     onPinchV(dSpan) {
-      this.lid = clamp(this.lid - dSpan / (window.innerHeight * CONFIG.stage5.pinchK), 0, 1);   // fingers closer → lids close
+      this.lid = clamp(this.lid - dSpan / (window.innerHeight * CONFIG.stage5.pinchK), 0, 1);
       this.touched = true;
-      if (dSpan < -1) this.idle = 0;   // A14: closing the fingers = trying → no hint icon
+      if (dSpan < -1) this.idle = 0;
     },
     showIcon(on) { if (on !== this.icon) { this.icon = on; $('pinchIcon').classList.toggle('show', on); } },
+    // v1.4: share (0…1) of the 斄牛's visible height (crest line → top) inside the eyelid opening
+    yakVis(lid) {
+      const Y = CONFIG.yak, p = Yak.group.position, q = this._q || (this._q = new THREE.Vector3());
+      q.set(p.x, this.cutY, p.z).project(camera); const b = (q.y + 1) / 2;
+      q.set(p.x, p.y + Y.top, p.z).project(camera); const t = (q.y + 1) / 2;
+      q.set(p.x - Y.length / 2, p.y + Y.mid, p.z).project(camera); let xm = Math.abs(q.x);
+      q.set(p.x + Y.length / 2, p.y + Y.mid, p.z).project(camera); xm = Math.max(xm, Math.abs(q.x));
+      const e = Eyes.edges(lid, Math.min(1, xm), CONFIG.stage5.lidY);
+      return clamp((Math.min(t, e.top) - Math.max(b, e.bot)) / Math.max(1e-4, t - b), 0, 1);
+    },
     update(dt) {
       const C = CONFIG.stage5, U = TEXT.ui;
       const fingers = Input.pts.size >= 2;
       if (!fingers) this.lid = Math.max(0, this.lid - C.relax * dt);
       PostFX.squint(this.lid);
-      const ok = this.lid >= C.lidOK;
-      this.idle = ok ? 0 : this.idle + dt;
+      this.vis = this.yakVis(PostFX.ok ? PostFX.v.lid : this.lid);
+      const sq = this.lid >= C.lidOK, tight = sq && this.vis < C.visOK, ok = sq && !tight;
+      this.idle = sq ? 0 : this.idle + dt;
       this.showIcon(this.idle > C.idleHintS);
       if (ok && this.hold > 0.4) this.wasOK = true;
       if (this.wasOK && this.lid < C.lidOK - 0.05) { this.wasOK = false; this.fails++; UI.toast(U.g5lost); }
       let msg;
-      if (ok) msg = this.hold < C.holdS * 0.6 ? U.g5hold : U.g5calm;
+      if (tight) msg = U.g5tight;
+      else if (ok) msg = this.hold < C.holdS * 0.6 ? U.g5hold : U.g5calm;
       else if (this.icon) msg = U.g5idle;
       else if (!this.touched) msg = U.g5start;
       else if (!fingers && this.lid > 0.05) msg = U.g5open;
       else msg = U.g5more;
       UI.guideText(msg);
-      this.hold = ok ? this.hold + dt : Math.max(0, this.hold - 2 * dt);
+      this.hold = ok ? this.hold + dt : Math.max(0, this.hold - (tight ? 1 : 2) * dt);
+      if (DEBUG.geo) DEBUG.info(DEBUG.geoLines.concat([`第五關：眼皮 ${this.lid.toFixed(2)}  斄牛在眼縫內 ${(this.vis * 100).toFixed(0)}%`]));
       if (this.hold >= C.holdS) Flow.success();
     },
     exit() { this.showIcon(false); }
@@ -3120,7 +3175,7 @@ const Flow = {
     UI.setDone(false);
     UI.flash();
     if (this.stage && this.stage.exit) this.stage.exit();
-    this.later(1.4, () => this.gaze());
+    this.later(0.9, () => this.gaze());
   },
   gaze() { this.state = 'gaze'; this.gazeT = 0; document.body.classList.add('gazing'); },
   release() {
@@ -3154,7 +3209,7 @@ const Flow = {
     if (this.state === 'play' && this.stage && this.stage.update) this.stage.update(dt);
     if (this.state === 'gaze') {
       this.gazeT += dt;
-      if (this.gazeT >= CONFIG.gaze.fadeS + CONFIG.gaze.seconds) this.release();
+      if (this.gazeT >= CONFIG.gaze.fadeS + (this.n === 1 ? CONFIG.gaze.seconds1 : CONFIG.gaze.seconds)) this.release();
     }
   }
 };
@@ -3420,21 +3475,33 @@ function makeDial(label, value, onChange, ends) {
     ndl.setAttribute('transform', `rotate(${(180 - v * 90).toFixed(1)})`);   // 180 = left, 90 = down
     if (fire) onChange(v);
   };
-  const fromEvent = (e) => {
+  // v1.4: first touch jumps to the finger; dragging after that is amplified (more sensitive)
+  const uAt = (e) => {
     const r = svg.getBoundingClientRect();
     const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
-    if (Math.hypot(dx, dy) < 6) return;
+    if (Math.hypot(dx, dy) < 6) return null;
     const a = deg(Math.atan2(dy, dx));          // screen: 0 = right, 90 = down, ±180 = left
-    let u;
-    if (a >= 90) u = (180 - a) / 90; else if (a >= -90) u = 1; else u = 0;
-    set(u, true);
+    return a >= 90 ? (180 - a) / 90 : a >= -90 ? 1 : 0;
   };
+  const GAIN = 1.6;
+  let u0 = 0, a0 = null;
   svg.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     try { svg.setPointerCapture(e.pointerId); } catch (_) {}
-    dragging = true; fromEvent(e);
+    dragging = true;
+    const u = uAt(e);
+    if (u !== null) set(u, true);
+    u0 = v; a0 = u;
   });
-  svg.addEventListener('pointermove', (e) => { if (dragging) { e.preventDefault(); e.stopPropagation(); fromEvent(e); } });
+  svg.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    e.preventDefault(); e.stopPropagation();
+    const u = uAt(e);
+    if (u === null) return;
+    if (a0 === null) { a0 = u; u0 = v; return; }
+    set(u0 + (u - a0) * GAIN, true);
+    if (v <= 0 || v >= 1) { u0 = v; a0 = u; }   // at an end → reversing reacts at once
+  });
   const end = () => { dragging = false; };
   svg.addEventListener('pointerup', end);
   svg.addEventListener('pointercancel', end);
@@ -3640,8 +3707,9 @@ const UI = {
     $('gyroFallback').style.display = fallback ? 'block' : 'none';
   },
   flash() {
-    this.flashEl.classList.add('on');
-    setTimeout(() => this.flashEl.classList.remove('on'), 180);
+    const el = this.flashEl;
+    el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');   // v1.4: restart the double pulse + ring
+    clearTimeout(this._flT); this._flT = setTimeout(() => el.classList.remove('on'), 1900);
   },
   // Show lines one at a time; each waits for a tap. The reading pause scales with line length.
   sequence(lines, title, onDone) {
@@ -3776,13 +3844,14 @@ const AUD = {
   steps: { peak: 0.5, chimeFrom: 0.35, chime: 0.08 },          // stage 3, muffled steps → soft chimes
   muffle: { open: 16000, squint: 1500, fur: 650 },             // low-pass (Hz): stage 5 squint, ending fur
   rustle: { peak: 0.35, n: 9, dur: 0.6 },                      // stage 6, the head touches the grass
+  grassStep: { peak: 0.45 },                                   // v1.4: stage 2, the observer's footsteps on the grass
   success: { peak: 0.16 },                                     // every success
   ending: { inFrom: 11.5, inS: 6, breath: 0.9, heart: 0.5, bpm: 54, outS: 2 },   // breathing + heartbeat
   notes: [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5]       // pentatonic chimes
 };
 const AudioFX = {
   enabled: false, ctx: null, btn: null, fresh: true, tk: 0, pt: 0, ni: 0,
-  last: { n: -1, state: '', idx: 0, landT: 99, step: 0, inWin: false, outT: 9, chimeT: 9, beat: 0 },
+  last: { n: -1, state: '', idx: 0, step2: 0, landT: 99, step: 0, inWin: false, outT: 9, chimeT: 9, beat: 0 },
   init() {
     this.btn = $('sndBtn');
     if (!this.btn) return;
@@ -3907,6 +3976,22 @@ const AudioFX = {
     s.connect(hp); hp.connect(bp); bp.connect(g); g.connect(this.bus);
     s.start(t, Math.random() * 3); s.stop(t + A.dur + 0.4);
   },
+// v1.4: stage 2 footstep on the grass – a few soft dry crackles + a muffled heel thud
+  grassStep(t, v) {
+    const k = AUD.grassStep.peak * (0.6 + 0.4 * clamp(v / CONFIG.stage2.vFwd, 0, 1)) * (0.85 + 0.3 * Math.random());
+    const s = this.noiseSrc(), hp = this.filt('highpass', 1400, 0.7), bp = this.filt('bandpass', 2600 + Math.random() * 1200, 0.9), g = this.ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    for (let i = 0; i < 5; i++) {
+      const ti = t + i * 0.022 + Math.random() * 0.012;
+      g.gain.setTargetAtTime(k * (1 - i * 0.15), ti, 0.004); g.gain.setTargetAtTime(0, ti + 0.01, 0.018);
+    }
+    s.connect(hp); hp.connect(bp); bp.connect(g); g.connect(this.bus);
+    s.start(t, Math.random() * 3); s.stop(t + 0.35);
+    const s2 = this.noiseSrc(), lp = this.filt('lowpass', 220, 0.7), g2 = this.ctx.createGain();
+    g2.gain.setValueAtTime(0, t); g2.gain.linearRampToValueAtTime(k * 0.9, t + 0.01); g2.gain.setTargetAtTime(0, t + 0.01, 0.04);
+    s2.connect(lp); lp.connect(g2); g2.connect(this.bus);
+    s2.start(t, Math.random() * 3); s2.stop(t + 0.3);
+  },
   bell(t) {
     const p = AUD.success.peak;
     this.tone(392, t, p, 0.15, 1.0); this.tone(587.33, t + 0.05, p * 0.5, 0.2, 1.1); this.tone(783.99, t + 0.1, p * 0.25, 0.2, 0.9);
@@ -3920,6 +4005,7 @@ const AudioFX = {
     else if (name === 'chime') { this.chime(t, 659.25, AUD.chime2.peak); this.chime(t + 0.16, 987.77, AUD.chime2.peak * 0.6); }
     else if (name === 'step') this.step(t, arg || 0);
     else if (name === 'rustle') this.rustle(t);
+    else if (name === 'grass') this.grassStep(t, arg || 0);
     else if (name === 'success') this.bell(t);
   },
   // stage 3 alignment 0…1 (from the comparison gauge fills + hold); after success its steps are chimes
@@ -3944,6 +4030,7 @@ const AudioFX = {
     if (fire && st === 'success' && L.state !== 'success') this.cue('success');
     if (fire && n === 6 && landT < L.landT) this.cue('rustle');
     if (fire && n === 3 && step > L.step && Yak.gait > 0.05) this.cue('step', this.align3());
+    if (fire && n === 2 && (S2.steps || 0) > L.step2) this.cue('grass', Math.abs(S2.v || 0));
     L.chimeT += dt;
     if (n === 2 && st === 'play' && !S2.matched) {
       const r = Measure.compute().ratio, w = CONFIG.sizeWindow, inW = r >= w[0] && r <= w[1];
@@ -3951,7 +4038,7 @@ const AudioFX = {
       L.outT = inW ? 0 : L.outT + dt;
       L.inWin = inW;
     }
-    L.n = n; L.state = st; L.idx = idx; L.landT = landT; L.step = step; this.fresh = false;
+    L.n = n; L.state = st; L.idx = idx; L.landT = landT; L.step = step; L.step2 = S2.steps || 0; this.fresh = false;
     // ---- continuous levels (20×/s) ----
     if ((this.pt += dt) < 0.05) return;
     this.pt = 0;
